@@ -2,7 +2,6 @@
   "name": "@billwgong/contextlint",
   "version": "0.1.0",
   "description": "Static checks and visual evidence for coding-agent instructions.",
-  "private": true,
   "type": "module",
   "bin": {
     "contextlint": "dist/cli.js"
@@ -24,7 +23,7 @@
     "test": "tsc && node --test",
     "demo": "node dist/cli.js examples/demo",
     "prepack": "tsc",
-    "prepare": "tsc"
+    "prepublishOnly": "npm test"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -49,5 +48,10 @@
     "linter",
     "instructions",
     "context"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "./dist/index.d.ts"
 }

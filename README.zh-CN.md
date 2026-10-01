@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/banner.svg" alt="ContextLint：检查编程助手的指令" width="100%" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/BillWGong/contextlint/main/assets/banner.svg" alt="ContextLint：检查编程助手的指令" width="100%" /></p>
 
 <p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
 
@@ -10,11 +10,24 @@
 
 扫描时无需 API key、不调用模型、不上传文件。
 
-![原文对比示意](assets/finding.svg)
+![原文对比示意](https://raw.githubusercontent.com/BillWGong/contextlint/main/assets/finding.svg)
 
 ## 开始使用
 
-需要 **Node.js 22+** 和 **pnpm**。当前为早期版本，从源码运行，尚未发布到 npm。
+需要 **Node.js 22+**。在自己的项目目录直接运行：
+
+```bash
+npx @billwgong/contextlint@latest . --html --lang zh
+```
+
+按终端显示的路径打开 HTML 报告。也可以全局安装：
+
+```bash
+npm install -g @billwgong/contextlint
+contextlint . --html --lang zh
+```
+
+如需从源码构建，使用 pnpm：
 
 ```bash
 git clone https://github.com/BillWGong/contextlint.git

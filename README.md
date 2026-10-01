@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/banner.svg" alt="ContextLint — lint the instructions behind your coding agent" width="100%" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/BillWGong/contextlint/main/assets/banner.svg" alt="ContextLint — lint the instructions behind your coding agent" width="100%" /></p>
 
 <p align="center">
   <a href="https://github.com/BillWGong/contextlint/actions/workflows/ci.yml"><img src="https://github.com/BillWGong/contextlint/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
@@ -17,11 +17,26 @@ A local CLI that finds repeated rules, explicit potential conflicts, and broken 
 
 No API key. No model calls. No file uploads during scanning.
 
-<p align="center"><img src="assets/finding.svg" alt="Illustrated example: competing pnpm and npm instructions, with source lines and a suggested next step" width="100%" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/BillWGong/contextlint/main/assets/finding.svg" alt="Illustrated example: competing pnpm and npm instructions, with source lines and a suggested next step" width="100%" /></p>
 
 ## Try it
 
-Requires **Node.js 22+** and **pnpm**. This is an early release distributed from source; it is not published to npm.
+Requires **Node.js 22+**. Run it directly in your project:
+
+```bash
+npx @billwgong/contextlint@latest . --html
+```
+
+For a Chinese report, add `--lang zh`. Open the saved HTML path printed by the CLI.
+
+Or install the command globally:
+
+```bash
+npm install -g @billwgong/contextlint
+contextlint . --html
+```
+
+To build from source, use pnpm:
 
 ```bash
 git clone https://github.com/BillWGong/contextlint.git
