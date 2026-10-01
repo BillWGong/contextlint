@@ -32,6 +32,7 @@ export interface Report {
   schemaVersion: '1.0';
   root: string;
   projectName?: string;
+  status?: 'complete' | 'limited' | 'no-sources';
   options: { agent: Agent | null; exclude: string[] };
   tokenEstimation: string;
   sources: Source[];

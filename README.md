@@ -41,7 +41,7 @@ Then point the CLI at your own repository:
 node dist/cli.js /path/to/your/repo --agent codex --html report.html
 ```
 
-Every HTML scan saves a unique file in `<scanned-project>/.contextlint/reports/`. Reports remain after the command exits and are never automatically deleted. The CLI prints an absolute path and a `file://` link. `--html report.html` also writes a convenient copy, creating parent directories when needed; previous scans remain in the history folder. The scanned project must be writable. The report title uses the scanned project’s `package.json` name when available, otherwise its directory name.
+Every HTML scan saves a unique file in `<scanned-project>/.contextlint/reports/`. Reports remain after the command exits and are never automatically deleted. The CLI prints an absolute path and a `file://` link. `--html report.html` also writes a convenient copy, creating parent directories when needed; previous scans remain in the history folder. The scanned project must be writable. Output copies replace existing regular files atomically; symbolic-link outputs and history directories are refused. If copying fails, the error includes the retained history path. New histories and copies use owner-only permissions on POSIX. Add `.contextlint/` to your project’s `.gitignore`: reports contain instruction excerpts, not encrypted data. The report title uses the scanned project’s `package.json` name when available, otherwise its directory name.
 
 For a terminal report, omit `--html`. Use `--lang en` or `--lang zh` to choose the interface language. The CLI defaults to your locale, then English. Instruction text is always preserved in its original language.
 
@@ -56,7 +56,7 @@ For a terminal report, omit `--html`. Use `--lang en` or `--lang zh` to choose t
 
 Every finding includes its original file and line range. The HTML report explains what was matched and offers guidance. It does not edit your files.
 
-**Scope matters.** Files for different agents are separated. Different heading contexts, parent/child directory rules, and unresolved activation conditions are handled conservatively. A Cursor rule and a Codex rule choosing different tools are not automatically a conflict.
+**Scope matters.** Files for different agents are separated. Package-manager choices can conflict across headings within one file. Other checks keep heading isolation; cross-file headings, parent/child directory rules, and unresolved activation conditions are handled conservatively. A Cursor rule and a Codex rule choosing different tools are not automatically a conflict.
 
 ## CLI
 
@@ -83,10 +83,10 @@ node dist/cli.js . --exclude fixtures --exclude legacy
 | `--html [file.html]` | Save a permanent visual report; optionally write an additional copy |
 | `--lang en\|zh` | Choose CLI and initial report language |
 | `--json` | Emit language-independent JSON with `schemaVersion: "1.0"` |
-| `--strict` | Return exit code 1 when warning findings exist |
+| `--strict` | Exit 1 for warnings; otherwise exit 2 if no sources or analysis is limited |
 | `--exclude <path>` | Exclude a literal relative path; no globs |
 
-HTML and JSON are separate output modes. Exit codes: **0** completed, **1** strict threshold reached, **2** usage or execution error. JSON report data goes to stdout; errors go to stderr. JSON field names and diagnostics remain stable English strings regardless of interface language.
+HTML and JSON are separate output modes. Exit codes: **0** completed, **1** strict threshold reached, **2** usage/execution error, or a strict scan with no findings that is incomplete or checked no files. `status` is `complete`, `limited`, or `no-sources`; `complete` refers only to the supported static checks and selected scope. JSON report data goes to stdout; errors go to stderr. JSON field names and diagnostics remain stable English strings regardless of interface language.
 
 ## Supported files
 
@@ -106,10 +106,10 @@ HTML and JSON are separate output modes. Exit codes: **0** completed, **1** stri
 - This is a **static linter**, not a runtime debugger. It cannot prove which instructions an agent loaded or followed.
 - Conflict detection uses a small set of explicit English and Chinese patterns. It does not understand arbitrary natural-language contradictions.
 - Code fences, quoted examples, comments, and recognized conditions are excluded from conflict checks. Markdown and frontmatter parsing are intentionally limited.
-- Different heading paths and nested directories are not compared as conflicts. That avoids some misleading findings and can miss real problems.
+- Different heading paths are not compared across files; within a file, only package-manager choices cross headings. Nested directories remain separate. That avoids some misleading findings and can miss real problems.
 - Local Markdown links are resolved from the instruction file directory, within the scan root. URLs, absolute paths, images, templates, and bare backtick paths are skipped.
 - Token counts are heuristic estimates, not session usage or cost savings. A clean report is not a correctness guarantee.
-- The scanner skips common dependency/build directories and symlinks. It does not apply `.gitignore`; use `--exclude` for additional paths. Files over 1 MiB are skipped.
+- The scanner skips common dependency/build directories and symlinks. It does not apply `.gitignore`; use `--exclude` for additional paths. Files over 1 MiB are skipped. Safety limits: 100,000 visited entries, depth 64, 1,000 instruction files, 8 MiB instruction text, 10,000 candidate rules, 8,192 characters per paragraph, 200,000 candidate conflict comparisons, and 1,000 findings per analyzer. Reaching a limit marks the report `limited`. Explicit exclusions and unsupported symlinks are intentional scope choices. Supported instruction-file symlinks remain visible as limited analysis.
 
 See [detection rules](docs/rules.md), [JSON Schema](docs/report.schema.json), and [validation notes](docs/validation.md) for details.
 

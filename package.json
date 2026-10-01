@@ -13,7 +13,8 @@
     "docs/report.schema.json",
     "README.md",
     "README.zh-CN.md",
-    "LICENSE"
+    "LICENSE",
+    "SECURITY.md"
   ],
   "engines": {
     "node": ">=22"

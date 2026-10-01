@@ -3,12 +3,17 @@ import { lint } from './index.js';
 import { agents, type Agent } from './types.js';
 import { render } from './reporter.js';
 import { renderHtml } from './html.js';
+import { terminalText } from './safe-io.js';
 import { pathToFileURL } from 'node:url';
 import { saveHtmlReport } from './report-storage.js';
 import { resolveLanguage, words } from './i18n.js';
 
-const languageIndex = process.argv.indexOf('--lang');
-const language = resolveLanguage(languageIndex >= 0 ? process.argv[languageIndex + 1] : undefined);
+const rawArgs = process.argv.slice(2);
+let requestedLanguage: string | undefined;
+for (let i = 0; i < rawArgs.length && rawArgs[i] !== '--'; i++) {
+  if (rawArgs[i] === '--lang') requestedLanguage = rawArgs[++i];
+}
+const language = resolveLanguage(requestedLanguage);
 const w = words(language);
 const help = `${w.help}
 
@@ -30,13 +35,18 @@ async function main() {
   const exclude: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
+    if (arg === '--') {
+      const rest = argv.slice(i + 1);
+      if (rest.length !== 1 || positional) throw new Error(w.oneDirectory);
+      root = rest[0]!; positional = true; break;
+    }
     if (arg === '--help' || arg === '-h') { console.log(help); return; }
     if (arg === '--version') { console.log('0.1.0'); return; }
     if (arg === '--json') { json = true; continue; }
     if (arg === '--strict') { strict = true; continue; }
     if (arg === '--html') {
       const next = argv[i + 1];
-      html = next && !next.startsWith('-') ? argv[++i]! : true;
+      html = next && !next.startsWith('-') && (positional || /\.html$/i.test(next)) ? argv[++i]! : true;
       continue;
     }
     if (arg === '--agent' || arg === '--exclude' || arg === '--lang') {
@@ -58,13 +68,14 @@ async function main() {
   const report = await lint(root, { agent, exclude });
   if (html) {
     const saved = await saveHtmlReport(report.root, renderHtml(report, language), typeof html === 'string' ? html : undefined);
-    console.log(`${w.saved}: ${saved.outputPath}`);
-    if (saved.outputPath !== saved.archivePath) console.log(`${w.history}: ${saved.archivePath}`);
+    console.log(terminalText(`${w.saved}: ${saved.outputPath}`));
+    if (saved.outputPath !== saved.archivePath) console.log(terminalText(`${w.history}: ${saved.archivePath}`));
     console.log(`${w.open}: ${pathToFileURL(saved.archivePath).href}`);
   } else console.log(json ? JSON.stringify(report, null, 2) : render(report, language));
   if (strict && report.findings.some(f => f.severity === 'warning')) process.exitCode = 1;
+  else if (strict && report.status !== 'complete') process.exitCode = 2;
 }
 main().catch((error: unknown) => {
-  console.error(`ContextLint: ${w.error} — ${error instanceof Error ? error.message : String(error)}`);
+  console.error(terminalText(`ContextLint: ${w.error} — ${error instanceof Error ? error.message : String(error)}`));
   process.exitCode = 2;
 });

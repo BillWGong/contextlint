@@ -1,10 +1,13 @@
 import path from 'node:path';
-import { access, realpath } from 'node:fs/promises';
-import type { Agent, Finding, Rule } from './types.js';
+import { lstat, realpath } from 'node:fs/promises';
+import { isWithin } from './safe-io.js';
+import type { Agent, Finding, Rule, Report } from './types.js';
 
 const location = (r: Rule) => ({ path: r.source.path, line: r.line, endLine: r.endLine, text: r.text });
-function overlap(a: Rule, b: Rule): Agent[] {
-  if (a.conditional || b.conditional || a.context !== b.context) return [];
+function overlap(a: Rule, b: Rule, projectPackageManager = false): Agent[] {
+  if (a.conditional || b.conditional) return [];
+  // Only package-manager choices within one file may cross heading boundaries.
+  if (a.context !== b.context && !(projectPackageManager && a.source.path === b.source.path)) return [];
   const agents = a.source.agents.filter(agent => b.source.agents.includes(agent));
   if (!agents.length) return [];
   if (a.source.path === b.source.path) return agents;
@@ -16,7 +19,27 @@ function packageManager(r: Rule): string | null {
   if (r.conditional) return null;
   const text = r.normalized.replace(/`([^`]+)`/g, '$1');
   const match = text.match(/^(?:always\s+)?use\s+(npm|pnpm|yarn|bun)(?:\s+(?:for (?:this |the )?project|as (?:the |your )?package manager|for (?:package|dependency) management))?$|^(?:请|必须|始终|总是|务必)?(?:使用|用)\s*(npm|pnpm|yarn|bun)(?:\s*(?:管理依赖|作为包管理器))?$/i);
-  return match ? (match[1] || match[2])!.toLowerCase() : null;
+  if (match) return (match[1] || match[2])!.toLowerCase();
+  // A small closed grammar: reject unknown prose rather than infer intent from mentions.
+  if (text.length > 160) return null;
+  const clauses = text.toLowerCase().split(/[.!;,。！；，]+/).map(c => c.trim()).filter(Boolean);
+  let selected: string | null = null;
+  const excluded = new Set<string>();
+  for (const clause of clauses) {
+    const negative = clause.match(/^(?:not\s+|(?:不用|不要用|禁止使用|禁用)\s*)(npm|pnpm|yarn|bun)$|^(npm|pnpm|yarn|bun)\s+(?:is\s+(?:legacy|a workaround)|禁用)$/);
+    if (negative) { excluded.add((negative[1] || negative[2])!); continue; }
+    const affirmative = clause.match(/^(npm|pnpm|yarn|bun)(?:\s+install\s+or\s+go\s+home)?$|^(?:always\s+)?use\s+(npm|pnpm|yarn|bun)(?:\s+(?:for (?:this |the )?project|as (?:the |your )?package manager|for (?:package|dependency) management))?$|^(?:请|必须|始终|总是|务必)?(?:使用|用)\s*(npm|pnpm|yarn|bun)(?:\s*(?:管理依赖|作为包管理器))?$/);
+    if (affirmative) {
+      const manager = (affirmative[1] || affirmative[2] || affirmative[3])!;
+      if (selected && selected !== manager) return null;
+      selected = manager;
+      continue;
+    }
+    // Rhetoric only reinforces an already explicit choice; it cannot select a tool.
+    if (selected && clause === `${selected} is the future`) continue;
+    return null;
+  }
+  return selected && !excluded.has(selected) ? selected : null;
 }
 function polarity(r: Rule): { negative: boolean; action: string } | null {
   if (r.conditional) return null;
@@ -26,7 +49,8 @@ function polarity(r: Rule): { negative: boolean; action: string } | null {
   if (!chinese) return null;
   return { negative: ['禁止', '绝不', '不要'].includes(chinese[1]!), action: chinese[2]! };
 }
-export function analyzeRules(rules: Rule[], filter?: Agent): Finding[] {
+export function analyzeRules(rules: Rule[], filter?: Agent, skipped?: Report['skipped']): Finding[] {
+  const limit = () => skipped?.push({ path: '.', reason: 'Conflict comparison or finding limit reached' });
   const findings: Finding[] = [];
   const duplicateGroups = new Map<string, Rule[]>();
   for (const rule of rules) {
@@ -59,39 +83,58 @@ export function analyzeRules(rules: Rule[], filter?: Agent): Finding[] {
     if (previous) previous.agents.push(...f.agents); else merged.set(key, f);
   }
   const result = [...merged.values()];
-  for (let i = 0; i < rules.length; i++) for (let j = i + 1; j < rules.length; j++) {
-    const a = rules[i]!, b = rules[j]!;
+  if (result.length >= 1000) { limit(); return result.slice(0, 1000); }
+  const recognized = rules.map(rule => ({ rule, manager: packageManager(rule), polarity: polarity(rule) }));
+  const managerKinds = new Set(recognized.map(c => c.manager).filter(Boolean));
+  const directions = new Map<string, Set<boolean>>();
+  for (const candidate of recognized) if (candidate.polarity) {
+    const values = directions.get(candidate.polarity.action) ?? new Set<boolean>();
+    values.add(candidate.polarity.negative); directions.set(candidate.polarity.action, values);
+  }
+  const candidates = recognized.filter(c => (c.manager && managerKinds.size > 1)
+    || (c.polarity && directions.get(c.polarity.action)!.size > 1));
+  let comparisons = 0;
+  for (let i = 0; i < candidates.length; i++) for (let j = i + 1; j < candidates.length; j++) {
+    if (++comparisons > 200000 || result.length >= 1000) { limit(); return result; }
+    const ca = candidates[i]!, cb = candidates[j]!;
+    const a = ca.rule, b = cb.rule;
     const shared = overlap(a, b).filter(agent => !filter || agent === filter);
-    if (!shared.length) continue;
-    const managerA = packageManager(a), managerB = packageManager(b);
-    const pa = polarity(a), pb = polarity(b);
-    const pm = managerA && managerB && managerA !== managerB;
-    const opposite = pa && pb && pa.negative !== pb.negative && pa.action === pb.action;
+    const managerShared = overlap(a, b, true).filter(agent => !filter || agent === filter);
+    if (!shared.length && !managerShared.length) continue;
+    const managerA = ca.manager, managerB = cb.manager;
+    const pa = ca.polarity, pb = cb.polarity;
+    const pm = managerShared.length && managerA && managerB && managerA !== managerB;
+    const opposite = shared.length && pa && pb && pa.negative !== pb.negative && pa.action === pb.action;
     if (!pm && !opposite) continue;
     result.push({ id: pm ? 'PACKAGE_MANAGER_CONFLICT' : 'POLARITY_CONFLICT', severity: 'warning', confidence: 'medium',
       message: pm ? `Potential package-manager conflict: ${managerA} / ${managerB}` : 'Potential opposite-directive conflict',
       reason: 'Explicit incompatible statements share an agent and static scope. Runtime loading and precedence are not inferred.',
-      agents: shared, locations: [location(a), location(b)] });
+      agents: pm ? managerShared : shared, locations: [location(a), location(b)] });
   }
   return result;
 }
-export async function analyzeReferences(root: string, rules: Rule[], filter?: Agent): Promise<Finding[]> {
+export async function analyzeReferences(root: string, rules: Rule[], filter?: Agent, skipped?: Report['skipped']): Promise<Finding[]> {
   const findings: Finding[] = [];
   for (const rule of rules) {
     const prose = rule.text.replace(/`+[^`]*`+/g, '');
-    for (const match of prose.matchAll(/(?<!!)\[[^\]]+\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
+    for (const match of prose.matchAll(/(?<!!)\[[^\[\]\n]+\]\(([^\s()]+)(?:[ \t]+"[^"\n]*")?\)/g)) {
       let target = match[1]!.replace(/^<|>$/g, '').split(/[?#]/)[0]!;
       if (!target || /^(?:[a-z][a-z0-9+.-]*:|\/|~)/i.test(target) || /[*{}$<>\\]/.test(target)) continue;
       try { target = decodeURIComponent(target); } catch { continue; }
       const absolute = path.resolve(root, path.dirname(rule.source.path), target);
-      const relative = path.relative(root, absolute);
-      if (relative.startsWith('..' + path.sep) || relative === '..' || path.isAbsolute(relative)) continue;
+      if (!isWithin(root, absolute)) continue;
       try {
-        await access(absolute);
+        const parent = await realpath(path.dirname(absolute));
+        if (!isWithin(root, parent)) continue;
+        if ((await lstat(absolute)).isSymbolicLink()) continue;
         const resolved = await realpath(absolute);
-        if (path.relative(root, resolved).startsWith('..')) continue;
+        if (!isWithin(root, resolved)) continue;
       } catch (error) {
-        if (!['ENOENT', 'ENOTDIR'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
+        if (findings.length >= 1000) { skipped?.push({ path: '.', reason: 'Reference finding limit reached' }); return findings; }
+        if (!['ENOENT', 'ENOTDIR'].includes((error as NodeJS.ErrnoException).code ?? '')) {
+          skipped?.push({ path: rule.source.path, reason: `Reference could not be checked (${(error as NodeJS.ErrnoException).code ?? 'unknown'})` });
+          continue;
+        }
         findings.push({ id: 'BROKEN_REFERENCE', severity: 'warning', confidence: 'high',
           message: `Local Markdown link does not exist: ${target}`,
           reason: 'Relative Markdown link resolved from the instruction file directory, within the scan root.',

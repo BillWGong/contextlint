@@ -5,6 +5,8 @@ export function resolveLanguage(explicit?: string, env: NodeJS.ProcessEnv = proc
   return /^zh(?:[_-]|$)/i.test(env.LC_ALL || env.LC_MESSAGES || env.LANG || '') ? 'zh' : 'en';
 }
 export const en = {
+  noSourcesHeadline: 'No instruction files checked', noSourcesHint: 'Check the scan directory, agent filter and exclusions. Add AGENTS.md or CLAUDE.md to start.',
+  limitedNotice: 'Partial analysis: some sources or checks were skipped. Review the limitations below.', scannedAt: 'Scanned',
   title: 'ContextLint · Instruction review', tagline: 'Clear instructions. Visible evidence.',
   overview: 'Overview', issues: 'Findings & suggestions', sources: 'Instruction sources',
   project: 'Project', allAgents: 'All agents', review: 'Instruction review', headline: 'findings to review', zeroHeadline: 'No supported issues found',
@@ -26,14 +28,16 @@ export const en = {
   saved: 'Visual report saved', history: 'History copy', open: 'Open saved report', language: 'Report language', error: 'Could not complete the scan',
   help: 'Usage: contextlint [directory] [options]', helpAgent: 'Check sources for one agent', helpJson: 'Output versioned JSON',
   helpHtml: 'Save a persistent visual report; optional additional output path', helpLang: 'Choose output language (default: locale, then English)',
-  helpStrict: 'Exit 1 for warning findings', helpExclude: 'Exclude a literal path (repeatable)', helpHelp: 'Show help', helpVersion: 'Show version',
-  exitCodes: 'Exit codes: 0 completed; 1 strict threshold reached; 2 execution/usage error.',
+  helpStrict: 'Exit 1 for warnings; 2 for incomplete analysis or no sources', helpExclude: 'Exclude a literal path (repeatable)', helpHelp: 'Show help', helpVersion: 'Show version',
+  exitCodes: 'Exit codes: 0 completed; 1 strict warnings; 2 execution/usage error or strict scan without complete coverage.',
   requiresValue: 'requires a value', unknownAgent: 'Unknown agent', unknownOption: 'Unknown option', oneDirectory: 'Only one directory can be scanned',
   incompatible: '--json and --html cannot be combined', htmlExtension: '--html output must end with .html', unknownLanguage: 'Language must be en or zh',
   symLink: 'Symbolic links are not followed', excluded: 'Explicitly excluded', large: 'Instruction file exceeds the 1 MiB limit',
   unresolved: 'Activation conditions are unresolved; cross-file comparisons disabled'
 };
 export const zh: Record<keyof typeof en, string> = {
+  noSourcesHeadline: '没有检查到指令文件', noSourcesHint: '检查扫描目录、助手筛选和排除项。可添加 AGENTS.md 或 CLAUDE.md 后重试。',
+  limitedNotice: '本次分析不完整：部分来源或检查被跳过，请查看下方限制。', scannedAt: '扫描时间',
   title: 'ContextLint · 指令检查报告', tagline: '指令更清楚，依据看得见', overview: '检查概览', issues: '问题与建议', sources: '指令来源',
   project: '项目', allAgents: '全部助手', review: '指令检查', headline: '项发现值得检查', zeroHeadline: '本次未发现已支持的问题',
   subtitle: '先看原文，再决定怎么修改。每一项都保留了来源位置、检测依据与修改建议。',
@@ -53,8 +57,8 @@ export const zh: Record<keyof typeof en, string> = {
   saved: '可视化报告已保存', history: '历史副本', open: '打开已保存报告', language: '报告语言', error: '未能完成扫描',
   help: '用法：contextlint [目录] [选项]', helpAgent: '只检查指定助手的来源', helpJson: '输出版本化 JSON',
   helpHtml: '持续保存可视化报告，可指定额外输出路径', helpLang: '选择输出语言（默认按系统语言，否则使用英语）',
-  helpStrict: '存在警告时返回退出码 1', helpExclude: '排除指定相对路径（可重复使用）', helpHelp: '显示帮助', helpVersion: '显示版本',
-  exitCodes: '退出码：0 完成；1 触发严格检查阈值；2 执行或参数错误。',
+  helpStrict: '警告返回 1；分析不完整或无文件返回 2', helpExclude: '排除指定相对路径（可重复使用）', helpHelp: '显示帮助', helpVersion: '显示版本',
+  exitCodes: '退出码：0 完成；1 严格检查发现警告；2 执行/参数错误或严格检查无完整结果。',
   requiresValue: '需要提供参数值', unknownAgent: '未知助手', unknownOption: '未知选项', oneDirectory: '一次只能扫描一个目录',
   incompatible: '--json 和 --html 不能同时使用', htmlExtension: '--html 输出文件必须以 .html 结尾', unknownLanguage: '语言必须为 en 或 zh',
   symLink: '不跟随符号链接', excluded: '已按参数排除', large: '指令文件超过 1 MiB 上限', unresolved: '激活条件未解析，已禁用跨文件比较'
@@ -62,13 +66,13 @@ export const zh: Record<keyof typeof en, string> = {
 export const words = (language: Language) => language === 'zh' ? zh : en;
 type Description = { title: string; why: string; fix: string; reason: string; category: string };
 const english: Record<Finding['id'], Description> = {
-  PACKAGE_MANAGER_CONFLICT: { title: 'Competing package-manager choices', why: 'Different package managers are selected within the same static scope. Installing or updating dependencies may become ambiguous.', fix: 'Check the project lockfile and choose the intended package manager. If the choices belong to different subprojects, make those conditions explicit.', reason: 'Explicit incompatible statements share an agent, heading context, and static scope. Runtime loading and precedence are not inferred.', category: 'conflict' },
+  PACKAGE_MANAGER_CONFLICT: { title: 'Competing package-manager choices', why: 'Different package managers are selected within the same static scope. Installing or updating dependencies may become ambiguous.', fix: 'Check the project lockfile and choose the intended package manager. If the choices belong to different subprojects, make those conditions explicit.', reason: 'Explicit incompatible package-manager choices share an agent and static scope. Choices within one file may cross headings; cross-file choices require matching headings. Runtime loading and precedence are not inferred.', category: 'conflict' },
   POLARITY_CONFLICT: { title: 'The same action is required and forbidden', why: 'These instructions give opposite directions for the same action. Check whether a condition or exception is missing.', fix: 'Confirm the intended behavior and keep the matching rule. If both rules are valid in different situations, write those conditions explicitly.', reason: 'Matching action text uses opposite supported directives in the same agent, heading context, and static scope.', category: 'conflict' },
   DUPLICATE_RULE: { title: 'A rule appears more than once', why: 'The instructions match after ignoring list markers, whitespace differences, and trailing sentence punctuation.', fix: 'Check whether both copies are needed. Within the same scope, one clear instruction may be easier to maintain.', reason: 'Normalized rule text matches in the same static scope and heading context for a shared agent.', category: 'duplicate' },
   BROKEN_REFERENCE: { title: 'A local reference is missing', why: 'A Markdown link points to a file that could not be found relative to the instruction file.', fix: 'Update the relative path, restore the file, or remove the outdated reference.', reason: 'A relative Markdown link was resolved from the instruction file directory within the scan root, but the target was not found.', category: 'reference' }
 };
 const chinese: Record<Finding['id'], Description> = {
-  PACKAGE_MANAGER_CONFLICT: { title: '包管理器选择不一致', why: '同一适用范围内出现了不同的包管理器选择，执行安装或更新依赖时可能产生歧义。', fix: '结合 lockfile 确定项目使用的包管理器，再统一这些指令。若用于不同子项目，请明确写出适用条件。', reason: '明确的不兼容声明具有相同助手、标题上下文和静态范围。未推断运行时加载或优先级。', category: 'conflict' },
+  PACKAGE_MANAGER_CONFLICT: { title: '包管理器选择不一致', why: '同一适用范围内出现了不同的包管理器选择，执行安装或更新依赖时可能产生歧义。', fix: '结合 lockfile 确定项目使用的包管理器，再统一这些指令。若用于不同子项目，请明确写出适用条件。', reason: '明确的不兼容包管理器选择具有相同助手和静态范围。同一文件内允许跨标题比较，跨文件仍要求标题相同。未推断运行时加载或优先级。', category: 'conflict' },
   POLARITY_CONFLICT: { title: '同一个动作被同时要求和禁止', why: '这些原文对相同动作给出了相反要求，需要确认是否遗漏了条件或例外。', fix: '确认你期望的行为，保留对应规则；如果两者适用于不同场景，请分别补充条件。', reason: '相同助手、标题上下文和静态范围内，匹配的动作文本使用了相反的明确要求。', category: 'conflict' },
   DUPLICATE_RULE: { title: '同一条规则重复出现', why: '忽略列表符号、空白和句末标点后，这些规则一致。', fix: '检查是否需要多处保留。对于同范围的重复条目，可以保留一份清晰的表述。', reason: '相同静态范围和标题上下文中，共享助手的规则文本在归一化后相同。', category: 'duplicate' },
   BROKEN_REFERENCE: { title: '引用的本地文件不存在', why: '按指令文件所在目录解析 Markdown 链接，未找到对应文件。', fix: '将链接更新为正确的相对路径，恢复文件，或删除已经过时的引用。', reason: '在扫描根目录内，按指令文件所在目录解析 Markdown 相对链接，未找到目标。', category: 'reference' }
@@ -77,5 +81,10 @@ export const describeFinding = (id: Finding['id'], language: Language) => (langu
 export function skipReason(reason: string, language: Language): string {
   const w = words(language);
   if (reason.startsWith('Activation conditions')) return w.unresolved;
+  if (reason.startsWith('Instruction file exceeds')) return w.large;
+  if (language === 'zh') {
+    if (reason.includes('limit')) return '达到扫描或分析上限；结果不完整（' + reason + '）';
+    if (reason.includes('could not be read')) return '无法读取文件或目录；结果不完整（' + reason + '）';
+  }
   return ({ 'Symbolic links are not followed': w.symLink, 'Explicitly excluded': w.excluded, 'Instruction file exceeds 1 MiB limit': w.large })[reason] ?? reason;
 }

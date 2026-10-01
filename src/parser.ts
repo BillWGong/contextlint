@@ -25,6 +25,7 @@ export function parse(content: string, source: Source): Rule[] {
   }
   let fence: { char: string; length: number } | null = null;
   let comment = false;
+  let quoted = false;
   const rules: Rule[] = [];
   let paragraph: string[] = [];
   let paragraphStart = 0;
@@ -43,6 +44,9 @@ export function parse(content: string, source: Source): Rule[] {
   };
   for (let i = start; i < lines.length; i++) {
     const line = lines[i]!;
+    if (/^\s*>/.test(line)) { flush(); quoted = true; continue; }
+    if (quoted && line.trim() && !/^\s{0,3}(?:#{1,6}\s|[-*+]\s|\d+[.)]\s|`{3,}|~{3,})/.test(line)) continue;
+    quoted = false;
     const marker = line.match(/^\s{0,3}(`{3,}|~{3,})/);
     if (marker) {
       flush();
@@ -51,6 +55,8 @@ export function parse(content: string, source: Source): Rule[] {
       continue;
     }
     if (fence) continue;
+    // Top-level indented code is data, not an instruction. Wrapped list prose is preserved.
+    if (/^(?: {4}|\t)/.test(line) && (!paragraph.length || !/^\s*(?:[-*+]\s+|\d+[.)]\s+)/.test(paragraph[0]!))) { flush(); continue; }
     if (comment || line.includes('<!--')) {
       flush(); comment = !line.includes('-->'); continue;
     }
