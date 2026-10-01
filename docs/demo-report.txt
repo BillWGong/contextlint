@@ -1,0 +1,42 @@
+ContextLint
+
+Found 1 Instruction files · ~82 estimated tokens
+3 Potential conflicts · 1 Duplicate rules · 1 Broken references
+
+  AGENTS.md  ~82 tokens · 8 rules · codex, copilot · Directory scope
+
+[warning] PACKAGE_MANAGER_CONFLICT (codex)
+Competing package-manager choices
+  AGENTS.md:3  - Use pnpm for this project.
+  AGENTS.md:4  - Use npm for this project.
+  Reason: Explicit incompatible statements share an agent, heading context, and static scope. Runtime loading and precedence are not inferred.
+  Suggested next step: Check the project lockfile and choose the intended package manager. If the choices belong to different subprojects, make those conditions explicit.
+
+[warning] DUPLICATE_RULE (codex)
+A rule appears more than once
+  AGENTS.md:5  - Always run tests before committing.
+  AGENTS.md:6  - Always run tests before committing!
+  Reason: Normalized rule text matches in the same static scope and heading context for a shared agent.
+  Suggested next step: Check whether both copies are needed. Within the same scope, one clear instruction may be easier to maintain.
+
+[warning] POLARITY_CONFLICT (codex)
+The same action is required and forbidden
+  AGENTS.md:5  - Always run tests before committing.
+  AGENTS.md:7  - Never run tests before committing.
+  Reason: Matching action text uses opposite always/never directives in the same agent, heading context, and static scope.
+  Suggested next step: Confirm the intended behavior and keep the matching rule. If both rules are valid in different situations, write those conditions explicitly.
+
+[warning] POLARITY_CONFLICT (codex)
+The same action is required and forbidden
+  AGENTS.md:6  - Always run tests before committing!
+  AGENTS.md:7  - Never run tests before committing.
+  Reason: Matching action text uses opposite always/never directives in the same agent, heading context, and static scope.
+  Suggested next step: Confirm the intended behavior and keep the matching rule. If both rules are valid in different situations, write those conditions explicitly.
+
+[warning] BROKEN_REFERENCE (codex)
+A local reference is missing
+  AGENTS.md:9  - Follow the [old guide](docs/removed.md).
+  Reason: A relative Markdown link was resolved from the instruction file directory within the scan root, but the target was not found.
+  Suggested next step: Update the relative path, restore the file, or remove the outdated reference.
+
+Static file analysis only. Token counts are estimates; review findings before editing.

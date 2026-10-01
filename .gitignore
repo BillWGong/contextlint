@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.tgz
+report*.html
+findings.json
+.DS_Store
+docs/live-demo.json

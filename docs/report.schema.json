@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ContextLint report v1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "root", "options", "tokenEstimation", "sources", "findings", "skipped", "summary"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "root": { "type": "string" },
+    "options": {
+      "type": "object", "additionalProperties": false, "required": ["agent", "exclude"],
+      "properties": {
+        "agent": { "enum": [null, "claude", "codex", "cursor", "copilot"] },
+        "exclude": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "tokenEstimation": { "type": "string" },
+    "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "skipped": {
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false, "required": ["path", "reason"],
+        "properties": { "path": { "type": "string" }, "reason": { "type": "string" } }
+      }
+    },
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["files", "rules", "estimatedTokens", "conflicts", "duplicates", "brokenReferences"],
+      "properties": {
+        "files": { "$ref": "#/$defs/count" }, "rules": { "$ref": "#/$defs/count" },
+        "estimatedTokens": { "$ref": "#/$defs/count" }, "conflicts": { "$ref": "#/$defs/count" },
+        "duplicates": { "$ref": "#/$defs/count" }, "brokenReferences": { "$ref": "#/$defs/count" }
+      }
+    }
+  },
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0 },
+    "agents": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["claude", "codex", "cursor", "copilot"] } },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "agents", "scope", "activation", "estimatedTokens", "bytes", "ruleCount"],
+      "properties": {
+        "path": { "type": "string" }, "agents": { "$ref": "#/$defs/agents" }, "scope": { "type": "string" },
+        "activation": { "enum": ["directory", "conditional", "unknown"] },
+        "estimatedTokens": { "$ref": "#/$defs/count" }, "bytes": { "$ref": "#/$defs/count" }, "ruleCount": { "$ref": "#/$defs/count" }
+      }
+    },
+    "location": {
+      "type": "object", "additionalProperties": false, "required": ["path", "line", "endLine", "text"],
+      "properties": {
+        "path": { "type": "string" }, "line": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 }, "text": { "type": "string" }
+      }
+    },
+    "finding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "severity", "confidence", "message", "reason", "agents", "locations"],
+      "properties": {
+        "id": { "enum": ["DUPLICATE_RULE", "PACKAGE_MANAGER_CONFLICT", "POLARITY_CONFLICT", "BROKEN_REFERENCE"] },
+        "severity": { "enum": ["info", "warning"] }, "confidence": { "enum": ["high", "medium"] },
+        "message": { "type": "string" }, "reason": { "type": "string" }, "agents": { "$ref": "#/$defs/agents" },
+        "locations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/location" } }
+      }
+    }
+  }
+}

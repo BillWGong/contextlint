@@ -1,0 +1,148 @@
+{
+  "schemaVersion": "1.0",
+  "root": "/example/repository",
+  "options": {
+    "agent": "codex",
+    "exclude": []
+  },
+  "tokenEstimation": "Heuristic: ASCII UTF-16 units / 4 + non-ASCII code points. Not a model tokenizer or session cost.",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "agents": [
+        "codex",
+        "copilot"
+      ],
+      "scope": ".",
+      "activation": "directory",
+      "bytes": 326,
+      "estimatedTokens": 82,
+      "ruleCount": 8
+    }
+  ],
+  "skipped": [],
+  "findings": [
+    {
+      "id": "PACKAGE_MANAGER_CONFLICT",
+      "severity": "warning",
+      "confidence": "medium",
+      "message": "Potential package-manager conflict: pnpm / npm",
+      "reason": "Explicit incompatible statements share an agent and static scope. Runtime loading and precedence are not inferred.",
+      "agents": [
+        "codex"
+      ],
+      "locations": [
+        {
+          "path": "AGENTS.md",
+          "line": 3,
+          "endLine": 3,
+          "text": "- Use pnpm for this project."
+        },
+        {
+          "path": "AGENTS.md",
+          "line": 4,
+          "endLine": 4,
+          "text": "- Use npm for this project."
+        }
+      ]
+    },
+    {
+      "id": "DUPLICATE_RULE",
+      "severity": "warning",
+      "confidence": "high",
+      "message": "Repeated rule in the same static scope",
+      "reason": "Rule text matches after removing list markers, whitespace differences and trailing sentence punctuation.",
+      "agents": [
+        "codex"
+      ],
+      "locations": [
+        {
+          "path": "AGENTS.md",
+          "line": 5,
+          "endLine": 5,
+          "text": "- Always run tests before committing."
+        },
+        {
+          "path": "AGENTS.md",
+          "line": 6,
+          "endLine": 6,
+          "text": "- Always run tests before committing!"
+        }
+      ]
+    },
+    {
+      "id": "POLARITY_CONFLICT",
+      "severity": "warning",
+      "confidence": "medium",
+      "message": "Potential opposite-directive conflict",
+      "reason": "Explicit incompatible statements share an agent and static scope. Runtime loading and precedence are not inferred.",
+      "agents": [
+        "codex"
+      ],
+      "locations": [
+        {
+          "path": "AGENTS.md",
+          "line": 5,
+          "endLine": 5,
+          "text": "- Always run tests before committing."
+        },
+        {
+          "path": "AGENTS.md",
+          "line": 7,
+          "endLine": 7,
+          "text": "- Never run tests before committing."
+        }
+      ]
+    },
+    {
+      "id": "POLARITY_CONFLICT",
+      "severity": "warning",
+      "confidence": "medium",
+      "message": "Potential opposite-directive conflict",
+      "reason": "Explicit incompatible statements share an agent and static scope. Runtime loading and precedence are not inferred.",
+      "agents": [
+        "codex"
+      ],
+      "locations": [
+        {
+          "path": "AGENTS.md",
+          "line": 6,
+          "endLine": 6,
+          "text": "- Always run tests before committing!"
+        },
+        {
+          "path": "AGENTS.md",
+          "line": 7,
+          "endLine": 7,
+          "text": "- Never run tests before committing."
+        }
+      ]
+    },
+    {
+      "id": "BROKEN_REFERENCE",
+      "severity": "warning",
+      "confidence": "high",
+      "message": "Local Markdown link does not exist: docs/removed.md",
+      "reason": "Relative Markdown link resolved from the instruction file directory, within the scan root.",
+      "agents": [
+        "codex"
+      ],
+      "locations": [
+        {
+          "path": "AGENTS.md",
+          "line": 9,
+          "endLine": 9,
+          "text": "- Follow the [old guide](docs/removed.md)."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "files": 1,
+    "rules": 8,
+    "estimatedTokens": 82,
+    "conflicts": 3,
+    "duplicates": 1,
+    "brokenReferences": 1
+  }
+}

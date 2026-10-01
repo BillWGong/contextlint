@@ -1,0 +1,7 @@
+---
+description: TypeScript guidance
+globs: "**/*.ts"
+alwaysApply: false
+---
+
+Use bun for this project.

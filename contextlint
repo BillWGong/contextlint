@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if command -v node >/dev/null 2>&1; then
+  exec node "$project_dir/dist/cli.js" "$@"
+fi
+bundled_node="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+if [ -x "$bundled_node" ]; then
+  exec "$bundled_node" "$project_dir/dist/cli.js" "$@"
+fi
+echo 'ContextLint requires Node.js 22+. Install Node.js or run from the Codex bundled runtime.' >&2
+exit 2
