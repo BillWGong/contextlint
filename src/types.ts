@@ -31,6 +31,7 @@ export interface Finding {
 export interface Report {
   schemaVersion: '1.0';
   root: string;
+  projectName?: string;
   options: { agent: Agent | null; exclude: string[] };
   tokenEstimation: string;
   sources: Source[];

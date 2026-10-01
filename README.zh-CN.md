@@ -34,7 +34,7 @@ node dist/cli.js examples/zh-demo --agent codex --lang zh --html report.html
 node dist/cli.js /你的项目路径 --agent codex --lang zh --html report.html
 ```
 
-每次生成 HTML 都会在 `<扫描项目>/.contextlint/reports/` 保存一份独立历史报告，命令退出后仍可打开，不会自动删除。终端会显示绝对路径和 `file://` 链接。使用 `--html report.html` 还会额外保存一份便于查找的副本，并自动创建父目录；再次扫描不会覆盖历史记录。扫描项目需要可写。
+每次生成 HTML 都会在 `<扫描项目>/.contextlint/reports/` 保存一份独立历史报告，命令退出后仍可打开，不会自动删除。终端会显示绝对路径和 `file://` 链接。使用 `--html report.html` 还会额外保存一份便于查找的副本，并自动创建父目录；再次扫描不会覆盖历史记录。扫描项目需要可写。 报告标题优先显示扫描项目 `package.json` 中的名称，没有有效名称时显示扫描目录名。
 
 去掉 `--html` 就会直接显示终端报告。CLI 默认按系统语言选择中文或英文，也可以用 `--lang en|zh` 指定。指令原文始终保持原样，不进行机器翻译。
 

@@ -35,7 +35,7 @@ export const en = {
 };
 export const zh: Record<keyof typeof en, string> = {
   title: 'ContextLint · 指令检查报告', tagline: '指令更清楚，依据看得见', overview: '检查概览', issues: '问题与建议', sources: '指令来源',
-  project: '工作目录', allAgents: '全部助手', review: '指令检查', headline: '项发现值得检查', zeroHeadline: '本次未发现已支持的问题',
+  project: '项目', allAgents: '全部助手', review: '指令检查', headline: '项发现值得检查', zeroHeadline: '本次未发现已支持的问题',
   subtitle: '先看原文，再决定怎么修改。每一项都保留了来源位置、检测依据与修改建议。',
   zeroSubtitle: '当前规则没有匹配到问题。复杂条件和语义仍需人工检查。',
   conflicts: '潜在冲突', duplicates: '重复规则', references: '失效引用', files: '指令文件',

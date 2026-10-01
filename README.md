@@ -41,7 +41,7 @@ Then point the CLI at your own repository:
 node dist/cli.js /path/to/your/repo --agent codex --html report.html
 ```
 
-Every HTML scan saves a unique file in `<scanned-project>/.contextlint/reports/`. Reports remain after the command exits and are never automatically deleted. The CLI prints an absolute path and a `file://` link. `--html report.html` also writes a convenient copy, creating parent directories when needed; previous scans remain in the history folder. The scanned project must be writable.
+Every HTML scan saves a unique file in `<scanned-project>/.contextlint/reports/`. Reports remain after the command exits and are never automatically deleted. The CLI prints an absolute path and a `file://` link. `--html report.html` also writes a convenient copy, creating parent directories when needed; previous scans remain in the history folder. The scanned project must be writable. The report title uses the scanned project’s `package.json` name when available, otherwise its directory name.
 
 For a terminal report, omit `--html`. Use `--lang en` or `--lang zh` to choose the interface language. The CLI defaults to your locale, then English. Instruction text is always preserved in its original language.
 

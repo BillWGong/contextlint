@@ -7,6 +7,7 @@
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "root": { "type": "string" },
+    "projectName": { "type": "string", "minLength": 1 },
     "options": {
       "type": "object", "additionalProperties": false, "required": ["agent", "exclude"],
       "properties": {

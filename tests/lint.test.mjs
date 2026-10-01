@@ -227,3 +227,14 @@ test('report archives survive replacement, deletion of output copy and CLI exit'
   await writeFile(path.join(root, '.contextlint', 'AGENTS.md'), 'Use npm.');
   assert.equal((await lint(root)).sources.length, 1);
 });
+
+test('report names use scanned project metadata with directory fallback and safe HTML', async t => {
+  const root = await fixture(t, { 'package.json': JSON.stringify({ name: '@team/真实项目<script>' }) });
+  const report = await lint(root);
+  assert.equal(report.projectName, '@team/真实项目<script>');
+  assert.ok(renderHtml(report, 'zh').includes('@team/真实项目&lt;script&gt;'));
+  await writeFile(path.join(root, 'package.json'), '{bad json');
+  assert.equal((await lint(root)).projectName, path.basename(root));
+  await rm(path.join(root, 'package.json'));
+  assert.equal((await lint(root)).projectName, path.basename(root));
+});
