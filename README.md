@@ -41,6 +41,8 @@ Then point the CLI at your own repository:
 node dist/cli.js /path/to/your/repo --agent codex --html report.html
 ```
 
+Every HTML scan saves a unique file in `<scanned-project>/.contextlint/reports/`. Reports remain after the command exits and are never automatically deleted. The CLI prints an absolute path and a `file://` link. `--html report.html` also writes a convenient copy, creating parent directories when needed; previous scans remain in the history folder. The scanned project must be writable.
+
 For a terminal report, omit `--html`. Use `--lang en` or `--lang zh` to choose the interface language. The CLI defaults to your locale, then English. Instruction text is always preserved in its original language.
 
 ## What you get
@@ -78,7 +80,7 @@ node dist/cli.js . --exclude fixtures --exclude legacy
 | Option | Behavior |
 | --- | --- |
 | `--agent claude\|codex\|cursor\|copilot` | Select instruction sources for one agent |
-| `--html <file.html>` | Write a self-contained visual report; parent directory must exist |
+| `--html [file.html]` | Save a permanent visual report; optionally write an additional copy |
 | `--lang en\|zh` | Choose CLI and initial report language |
 | `--json` | Emit language-independent JSON with `schemaVersion: "1.0"` |
 | `--strict` | Return exit code 1 when warning findings exist |

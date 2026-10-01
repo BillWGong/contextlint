@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Source, Rule, ScanOptions, Report } from './types.js';
 import { estimateTokens, parse } from './parser.js';
 
-const ignored = new Set(['.git', 'node_modules', 'dist', 'build', 'coverage', '.next', '.venv', 'vendor']);
+const ignored = new Set(['.git', '.contextlint', 'node_modules', 'dist', 'build', 'coverage', '.next', '.venv', 'vendor']);
 const slash = (p: string) => p.split(path.sep).join('/');
 export function describe(file: string): Omit<Source, 'bytes' | 'estimatedTokens' | 'ruleCount'> | null {
   const parent = path.posix.dirname(file);

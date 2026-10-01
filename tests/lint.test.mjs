@@ -7,6 +7,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { lint } from '../dist/index.js';
 import { renderHtml } from '../dist/html.js';
+import { saveHtmlReport } from '../dist/report-storage.js';
 import { resolveLanguage } from '../dist/i18n.js';
 
 async function fixture(t, files) {
@@ -166,7 +167,7 @@ test('visual reports contain actionable evidence and escape instruction content'
   assert.equal(run('examples/demo', '--html', output, '--strict').status, 1);
   assert.equal(run('--html', output, '--json').status, 2);
   assert.equal(run('--html', path.join(root, 'report.txt')).status, 2);
-  assert.equal(run('--html', path.join(root, 'missing', 'report.html')).status, 2);
+  assert.equal(run(root, '--html', path.join(root, 'missing', 'report.html')).status, 0);
   const empty = renderHtml(await lint(root));
   assert.ok(empty.includes('本次未发现已支持的问题'));
 });
@@ -207,4 +208,22 @@ test('Chinese directives support explicit polarity and skip conditional alternat
   const report = await lint(root);
   assert.equal(report.summary.conflicts, 2);
   assert.ok(report.findings.some(f => f.id === 'POLARITY_CONFLICT'));
+});
+
+test('report archives survive replacement, deletion of output copy and CLI exit', async t => {
+  const root = await fixture(t, { 'AGENTS.md': 'Use pnpm.' });
+  const output = path.join(root, 'nested', 'report.html');
+  const first = await saveHtmlReport(root, 'first', output);
+  const second = await saveHtmlReport(root, 'second', output);
+  assert.notEqual(first.archivePath, second.archivePath);
+  assert.equal(await readFile(first.archivePath, 'utf8'), 'first');
+  assert.equal(await readFile(output, 'utf8'), 'second');
+  await rm(output);
+  assert.equal(await readFile(second.archivePath, 'utf8'), 'second');
+  const result = run(root, '--html', '--lang', 'en');
+  assert.equal(result.status, 0);
+  const url = result.stdout.match(/file:\/\/[^\r\n]+/)[0];
+  assert.ok((await readFile(new URL(url), 'utf8')).startsWith('<!doctype html>'));
+  await writeFile(path.join(root, '.contextlint', 'AGENTS.md'), 'Use npm.');
+  assert.equal((await lint(root)).sources.length, 1);
 });
